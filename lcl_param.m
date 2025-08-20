@@ -1,6 +1,7 @@
-function [L_1, L_2, C_f, R_f] = lcl_param()
+function [P, Q, L_1, L_2, C_f, R_f] = lcl_param()
 
 P = 5000;
+Q = 1000;
 f_g = 60;
 f_sw = 15000;
 V_dc = 400;
@@ -30,6 +31,10 @@ f_res = w_res/(2*pi);
 
 % damping resistor
 R_f = 1000/(3*w_res*C_f);
+
+% delta connection
+R_f = 3*R_f;
+C_f = C_f/3;
 
 % check for resonance
 if (10*f_g) < f_res && f_res < (0.5*f_sw) 
