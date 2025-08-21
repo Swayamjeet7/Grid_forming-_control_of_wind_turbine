@@ -1,7 +1,7 @@
 function [P, Q, L_1, L_2, C_f, R_f] = lcl_param()
 
 P = 5000;
-Q = 1000;
+Q = 250;
 f_g = 60;
 f_sw = 15000;
 V_dc = 400;
