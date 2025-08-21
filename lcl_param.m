@@ -1,12 +1,12 @@
 function [P, Q, L_1, L_2, C_f, R_f] = lcl_param()
 
-P = 5000;
-Q = 250;
-f_g = 60;
-f_sw = 15000;
-V_dc = 400;
-V_g = 120 * sqrt(3);
-L = 2500;
+P = 5000; % active power of load
+Q = 250; % reactive power of load
+f_g = 60; % grid frequency
+f_sw = 15000; % switching frequency for inverter gate signal
+V_dc = 400; % DC output voltage
+V_g = 120 * sqrt(3); % grid line voltage
+L = 2500; % grid inductance
 
 x = 0.05; % maximum power factor variation seen by the grid
 k = 0.2; % attenuation factor
@@ -35,6 +35,7 @@ R_f = 1000/(3*w_res*C_f);
 % delta connection
 R_f = 3*R_f;
 C_f = C_f/3;
+L_1 = L_1*3;
 
 % check for resonance
 if (10*f_g) < f_res && f_res < (0.5*f_sw) 
