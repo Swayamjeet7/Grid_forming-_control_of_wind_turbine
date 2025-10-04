@@ -8,6 +8,10 @@ using PLL and d-q control method.
 For calculating the parameters of filter, the `lcl_param.m` 
 function is used.
 
+Function `EHD_matrices` provides the necessary Extended Harmonics
+Domain (EHD) matrices for determining the parameters of any 
+particular filter.
+
 File `L_filter.slx` is the model of system containing L-filter.
 `L_filter_code.m` is the code where parameters of L-filter are 
 evaluated using EHD method and then, are optimized.
