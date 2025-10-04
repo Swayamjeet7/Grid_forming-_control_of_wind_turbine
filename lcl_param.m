@@ -1,4 +1,4 @@
-function [P, Q, L_1, L_2, C_f, R_f] = lcl_param()
+function [P, Q, f_g, f_sw, V_dc, V_g, L_1, L_2, C_f, R_f] = lcl_param()
 
 P = 5000; % active power of load
 Q = 250; % reactive power of load
