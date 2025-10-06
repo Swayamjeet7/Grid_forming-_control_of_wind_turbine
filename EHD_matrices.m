@@ -1,4 +1,4 @@
-function [t] = switchh(f0, f_sw, M, N, h)
+function [D, Ga, Za, Va, Il] = EHD_matrices(f0, f_sw, M, N, h)
 % generate binary switching signals for 3-phase SPWM
 
 % Inputs:
@@ -15,6 +15,10 @@ t = (0:N-1)/Fs;
 
 % reference
 w = 2*pi*f0;
+% va = 120*sin(w*t); % phase voltage given for L_filter
+va = 310*sin(w*t); % phase voltage given for LCL_filter
+il = 50*cos(w*t);
+
 m_a = M*sin(w*t);
 m_b = M*sin(w*t - (2*pi/3));
 m_c = M*sin(w*t + (2*pi/3));
@@ -26,12 +30,14 @@ carrier = 2*abs(2*mod(f_sw*t,1)-1)-1;  % triangle in range [-1,1]
 s_a = double(m_a > carrier);
 s_b = double(m_b > carrier);
 s_c = double(m_c > carrier);
-s = [s_a; s_b; s_c];
+% s = [s_a; s_b; s_c];
 
 % FFT 
 Sfull_a = fftshift(fft(s_a)/N);
 Sfull_b = fftshift(fft(s_b)/N);
 Sfull_c = fftshift(fft(s_c)/N);
+Vfull_a = fftshift(fft(va)/N);
+Ifull_l = fftshift(fft(il)/N);
 
 % map bins to harmonic index -N/2 .. N/2-1
 % k = (-N/2):(N/2-1);
@@ -45,6 +51,8 @@ freqs = ( -h:h ) * f0;  % harmonic frequencies
 Sa_h = Sfull_a(idx);
 Sb_h = Sfull_b(idx);
 Sc_h = Sfull_c(idx);
+Va = transpose(Vfull_a(idx));
+Il = transpose(Ifull_l(idx));
 
 % S_h = [Sfull_a(idx); Sfull_b(idx); Sfull_c(idx)];
 % Sa = S_h(1,:);
@@ -57,50 +65,48 @@ Sb = buildToeplitz(Sb_h,h);
 Sc = buildToeplitz(Sc_h,h);
 
 Ga = Sa - (Sa + Sb + Sc)/3;
-Gb = Sb - (Sa + Sb + Sc)/3;
-Gc = Sc - (Sa + Sb + Sc)/3;
+% Gb = Sb - (Sa + Sb + Sc)/3;
+% Gc = Sc - (Sa + Sb + Sc)/3;
 
 % identity matrix
-I = eye(2*h+1);
+% I = eye(2*h+1);
 
 % operational matrix of differentiation
 diagElements = 1j*(-h:h)*w;
 D = diag(diagElements);
 
 
-La = buildSimplificationMatrix(Sa,h);
-Lb = buildSimplificationMatrix(Sb,h);
-Lc = buildSimplificationMatrix(Sc,h);
-
-disp(La)
+Za = buildSimplificationMatrix(Sa,h);
+% Zb = buildSimplificationMatrix(Sb,h);
+% Zc = buildSimplificationMatrix(Sc,h);
 
 end
   
 
-function Lx = buildSimplificationMatrix(Sx,h)
+function Zx = buildSimplificationMatrix(Sx,h)
 
 m = 6*(-1*ceil(h/3):ceil(h/3));
 check_row = h+1+m;
+Zx = zeros(2*h+1,2*h+1);
 
 % put value when row equal to h+1+m
 for row = (1:2*h+1)
     for col = (1:2*h+1)
         if ~isempty(find(check_row == row, 1))
-            Lx(row,col) = Sx(row, col);
-        else
-            Lx(row,col) = 0;
+            Zx(row,col) = Sx(row, col);
         end
     end
 end
 
 end
 
+
 function Sx = buildToeplitz(Sx_h,h)
 H = -h:h;
 % build Toeplitz 
-c = Sx_h(h+1:end);
-r = Sx_h(h+1:-1:1);
-Sx = toeplitz(c, r);
+% c = Sx_h(h+1:end);
+% r = Sx_h(h+1:-1:1);
+% Sx = toeplitz(c, r);
 
 % full (2h+1)x(2h+1) by convolution rule
 Nh = 2*h+1;
@@ -116,4 +122,3 @@ for r = (1:Nh)
 end
 end
 
-f = switchh(50, 5000, 0.8, 2048, 2);
