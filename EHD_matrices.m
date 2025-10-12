@@ -1,5 +1,4 @@
 function [D, Ga, Za, Va, Il] = EHD_matrices(f0, f_sw, M, N, h)
-% generate binary switching signals for 3-phase SPWM
 
 % Inputs:
 %   f0      -   fundamental frequency (Hz)
