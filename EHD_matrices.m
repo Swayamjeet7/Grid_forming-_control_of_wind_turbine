@@ -1,4 +1,4 @@
-function [D, Ga, Za, Va, Il] = EHD_matrices(f0, f_sw, M, N, h)
+function [D, Ga, Za, Va, Idc] = EHD_matrices(f0, f_sw, M, N, h, P_ref, Vdc_ref, Vac_peak)
 
 % Inputs:
 %   f0      -   fundamental frequency (Hz)
@@ -15,8 +15,8 @@ t = (0:N-1)/Fs;
 % reference
 w = 2*pi*f0;
 % va = 120*sin(w*t); % phase voltage given for L_filter
-va = 310*sin(w*t); % phase voltage given for LCL_filter
-il = 50*cos(w*t);
+va = Vac_peak*sin(w*t); % phase voltage given for LCL_filter
+il = P_ref ./ Vdc_ref;
 
 m_a = M*sin(w*t);
 m_b = M*sin(w*t - (2*pi/3));
@@ -38,6 +38,7 @@ Sfull_c = fftshift(fft(s_c)/N);
 Vfull_a = fftshift(fft(va)/N);
 Ifull_l = fftshift(fft(il)/N);
 
+
 % map bins to harmonic index -N/2 .. N/2-1
 % k = (-N/2):(N/2-1);
 
@@ -51,7 +52,8 @@ Sa_h = Sfull_a(idx);
 Sb_h = Sfull_b(idx);
 Sc_h = Sfull_c(idx);
 Va = transpose(Vfull_a(idx));
-Il = transpose(Ifull_l(idx));
+Idc = complex(zeros(2*h+1,1));
+Idc(h+1) = complex(il,0);
 
 % S_h = [Sfull_a(idx); Sfull_b(idx); Sfull_c(idx)];
 % Sa = S_h(1,:);
