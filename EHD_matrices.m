@@ -1,4 +1,4 @@
-function [D, Ga, Za, Va, Idc] = EHD_matrices(f0, f_sw, M, N, h, P_ref, Vdc_ref, Vac_peak)
+function [D, Ga, Za, Va, Idc] = EHD_matrices(f0, f_sw, M, theta, N, h, Vac_peak, Idc_f)
 
 % Inputs:
 %   f0      -   fundamental frequency (Hz)
@@ -16,11 +16,11 @@ t = (0:N-1)/Fs;
 w = 2*pi*f0;
 % va = 120*sin(w*t); % phase voltage given for L_filter
 va = Vac_peak*sin(w*t); % phase voltage given for LCL_filter
-il = P_ref ./ Vdc_ref;
+% il = P_ref ./ Vdc_ref;
 
-m_a = M*sin(w*t);
-m_b = M*sin(w*t - (2*pi/3));
-m_c = M*sin(w*t + (2*pi/3));
+m_a = M * sin(w*t + theta);
+m_b = M * sin(w*t - (2*pi/3) + theta);
+m_c = M * sin(w*t + (2*pi/3) + theta);
 
 % sawtooth carrier 
 carrier = 2*abs(2*mod(f_sw*t,1)-1)-1;  % triangle in range [-1,1]
@@ -36,7 +36,7 @@ Sfull_a = fftshift(fft(s_a)/N);
 Sfull_b = fftshift(fft(s_b)/N);
 Sfull_c = fftshift(fft(s_c)/N);
 Vfull_a = fftshift(fft(va)/N);
-Ifull_l = fftshift(fft(il)/N);
+Ifull_l = fftshift(fft(Idc_f)/N);
 
 
 % map bins to harmonic index -N/2 .. N/2-1
@@ -53,7 +53,7 @@ Sb_h = Sfull_b(idx);
 Sc_h = Sfull_c(idx);
 Va = transpose(Vfull_a(idx));
 Idc = complex(zeros(2*h+1,1));
-Idc(h+1) = complex(il,0);
+Idc(h+1) = complex(Idc_f,0);
 
 % S_h = [Sfull_a(idx); Sfull_b(idx); Sfull_c(idx)];
 % Sa = S_h(1,:);
