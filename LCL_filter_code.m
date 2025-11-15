@@ -119,6 +119,78 @@ function [] = LCL_filter_code()
     % s = objectiveFun(x_opt);
     % disp(s);
 
+
+    [Iga, Ica, Vfa, Vdc] = LCL_filter_equation(x_opt);
+    
+%% ------------------ Robust two-period reconstruction & plots ------------------
+% Assumes X_h vectors are ordered from -h .. 0 .. +h (length 2*h+1; center index h+1).
+% Replace prior reconstruction calls with this block.
+
+% get harmonic vectors (already computed)
+% [Iga, Ica, Vfa, Vdc] = LCL_filter_equation(x_opt);
+
+% Sampling and time vector (two periods)
+numPeriods = 400;
+Tfund = 1 / f0;
+% pick Fs so that Fs >> switching freq (to show waveform detail). 10 kHz is fine.
+Fs = 10000;                    
+t = 0 : 1/Fs : numPeriods*Tfund - 1/Fs;   % exactly two periods
+t = t*100;
+
+% Helper: vectorized inverse EHD (harmonic sum)
+% NOTE: this uses direct sum: x(t) = real( sum_{k=-h}^{h} X_h[k]*exp(j*2*pi*k*f0*t) )
+invEHD = @(X_h) real( (reshape(X_h,1,[]) * exp(1j*2*pi*((-h:h)')*t)) );
+
+% Reconstruct
+ig_t  = invEHD(Iga);    % grid-side current time waveform
+ic_t  = invEHD(Ica);    % converter-side current waveform
+vf_t  = invEHD(Vfa);    % filter capacitor voltage
+vdc_t = invEHD(Vdc);    % DC-link voltage (should be mostly DC + tiny ripple)
+
+% Basic plots: two periods
+figure('Units','normalized','Position',[0.05 0.05 0.85 0.8],'Color','w');
+
+subplot(4,1,1);
+plot(t, ig_t, 'LineWidth', 1.0);
+xlabel('Time (s)'); ylabel('i_g (A)');
+title('Grid-side current — 2 periods'); xlim([0 numPeriods*Tfund]);
+
+subplot(4,1,2);
+plot(t, ic_t, 'LineWidth', 1.0); hold on;
+plot(t(1:round(length(t)/2)), ic_t(1:round(length(t)/2)), 'k:');
+plot(t(round(length(t)/2)+1:end), ic_t(round(length(t)/2)+1:end), 'r--');
+hold off;
+xlabel('Time (s)'); ylabel('i_c (A)');
+title('Converter-side current — 2 periods'); xlim([0 numPeriods*Tfund]);
+
+subplot(4,1,3);
+plot(t, vf_t, 'LineWidth', 1.0); hold on;
+plot(t(1:round(length(t)/2)), vf_t(1:round(length(t)/2)), 'k:');
+plot(t(round(length(t)/2)+1:end), vf_t(round(length(t)/2)+1:end), 'r--');
+hold off;
+xlabel('Time (s)'); ylabel('v_f (V)');
+title('Filter capacitor voltage — 2 periods'); xlim([0 numPeriods*Tfund]);
+
+subplot(4,1,4);
+plot(t, vdc_t, 'LineWidth', 1.0); hold on;
+plot(t(1:round(length(t)/2)), vdc_t(1:round(length(t)/2)), 'k:');
+plot(t(round(length(t)/2)+1:end), vdc_t(round(length(t)/2)+1:end), 'r--');
+hold off;
+xlabel('Time (s)'); ylabel('V_{dc} (V)');
+title('DC-link voltage — 2 periods'); xlim([0 numPeriods*Tfund]);
+
+% Optional: zoom into a small window to inspect switching ripple (e.g., first 2 ms)
+zoomWindow = 0.002; % 2 ms
+figure('Units','normalized','Position',[0.1 0.1 0.6 0.35]);
+plot(t, ig_t, 'LineWidth', 1.0); xlim([0 zoomWindow]);
+xlabel('Time (s)'); ylabel('i_g (A)');
+title(sprintf('Grid current zoom (first %.1f ms)', zoomWindow*1e3));
+
+% Optional: compute and print basic stats to sanity-check
+% fprintf('Signal stats (grid current): mean=%.4f A, pk2pk=%.4f A\n', mean(ig_t), max(ig_t)-min(ig_t));
+% fprintf('DC-link: mean=%.4f V, ripple-pk2pk=%.6f V\n', mean(vdc_t), max(vdc_t)-min(vdc_t));
+
+
     % output optimized paramter values
     ansp = round((x_opt ./ scale), 3);
     fprintf('\nFilter parameters for %.f V supply and %.f W reference power are \n', Vdc_ref, P_ref);
@@ -131,7 +203,7 @@ function [] = LCL_filter_code()
     disp(['modulation index:          ', num2str(ansp(6))]);
     disp(['theta:                     ', num2str(ansp(7))]);
     disp(' ')
-
+    
     % graphs for performance indeces w.r.t. reference power
     spect = [];
     P_spect = [];
@@ -151,22 +223,22 @@ function [] = LCL_filter_code()
     THD_Ic = spect(3,:) .*100;
     THD_Vdc = spect(4,:) .*100;
 
-    subplot(2,2,1)
-    plot(P_spect, THD_Vac)
-    xlabel("Reference Power")
-    ylabel("Capacitor voltage THD")
-    subplot(2,2,4)
-    plot(P_spect, THD_Ig)
-    xlabel("Reference Power")
-    ylabel("Grid side current THD")
-    subplot(2,2,3)
-    plot(P_spect, THD_Ic)
-    xlabel("Reference Power")
-    ylabel("Converter side current THD")
-    subplot(2,2,2)
-    plot(P_spect, THD_Vdc)
-    xlabel("Reference Power")
-    ylabel("DC source voltage THD")
+    % subplot(2,2,1)
+    % plot(P_spect, THD_Vac)
+    % xlabel("Reference Power")
+    % ylabel("Capacitor voltage THD")
+    % subplot(2,2,4)
+    % plot(P_spect, THD_Ig)
+    % xlabel("Reference Power")
+    % ylabel("Grid side current THD")
+    % subplot(2,2,3)
+    % plot(P_spect, THD_Ic)
+    % xlabel("Reference Power")
+    % ylabel("Converter side current THD")
+    % subplot(2,2,2)
+    % plot(P_spect, THD_Vdc)
+    % xlabel("Reference Power")
+    % ylabel("DC source voltage THD")
 
     function F = objectiveFun(x)
 
@@ -273,5 +345,103 @@ function [] = LCL_filter_code()
         Vdc = Xss(3*(2*h+1)+1:4*(2*h+1));
 
     end
+
+
+    % function X = inverseFFT(X_h, f, h)
+    % 
+    %     Nfft = floor(1+1/(f*0.0001));
+    % 
+    %     FFTbins = zeros(2*Nfft,1);
+    %     FFTbins(1) = X_h(h+1); %dc term
+    %     for k = 1:h
+    %         % for positive k
+    %         FFTbins(k+1) = X_h(h+1+k);          
+    %         % conjugate for negative k
+    %         FFTbins(Nfft - k + 1) = conj(X_h(h+1-k)); 
+    %     end
+    %     X = real(ifft(FFTbins) * Nfft);
+    % 
+    % end
+
+    % function x_t = inverseEHD_autodetect(X_h, f0, h, t)
+    % % Reconstruct time waveform from EHD harmonic vector X_h (length 2*h+1).
+    % % This routine tests two common conventions and picks the one that yields
+    % % a dominant fundamental magnitude.
+    % %
+    % % Inputs:
+    % %   X_h : (2*h+1)x1 harmonic vector (complex). Commonly ordered -h..+h with center at h+1.
+    % %   f0  : fundamental frequency (Hz)
+    % %   h   : maximum harmonic index
+    % %   t   : time vector (1xNt)
+    % % Output:
+    % %   x_t : real time waveform (1xNt)
+    % %
+    % % It will also print which mapping was chosen.
+    % 
+    %     X_h = X_h(:);            % ensure column
+    %     % Try mapping A: assume X_h indices correspond to k = -h:h (center index = h+1)
+    %     ksA = (-h:h).';          % harmonic indices for mapping A
+    %     % Try mapping B: sometimes data is shifted by +1 (rare). We'll try also k = -h+1 : h+1
+    %     ksB = (-h+1:h+1).';      % shifted indices (center at h+2)
+    % 
+    %     % build time exponentials and compute candidate waveforms
+    %     E_A = exp(1j*2*pi*(ksA)*t);  % (2h+1) x Nt
+    %     try
+    %         xA_complex = X_h.' * E_A;
+    %         xA = real(xA_complex);
+    %     catch
+    %         xA = -inf(1,length(t)); % fail-safe
+    %     end
+    % 
+    %     % For mapping B we need to align sizes: if ksB has same length, shift X_h accordingly
+    %     if length(ksB) == length(X_h)
+    %         E_B = exp(1j*2*pi*(ksB)*t);
+    %         xB_complex = X_h.' * E_B;
+    %         xB = real(xB_complex);
+    %     else
+    %         % if lengths don't match (shouldn't happen) make xB empty
+    %         xB = [];
+    %     end
+    % 
+    %     % Compute FFT magnitude near f0 for both candidates to find which has dominant fundamental
+    %     % FFT of one period (use 1/f0 seconds)
+    %     NtFund = round(1/(f0) * (1/(t(2)-t(1))));
+    %     if NtFund < 8, NtFund = 1024; end
+    %     % window a single period from the start
+    %     idx1 = 1: min(NtFund, length(t));
+    %     magFundA = dominantFundamentalMag(xA(idx1), f0, t(idx1));
+    %     magFundB = dominantFundamentalMag(xB(idx1), f0, t(idx1));
+    % 
+    %     fprintf('Detected fundamental magnitudes -> A: %.6e , B: %.6e\n', magFundA, magFundB);
+    % 
+    %     if magFundA >= 10*magFundB  % A much better
+    %         chosen = 'A (center = h+1)';
+    %         x_t = xA;
+    %     elseif magFundB > 10*magFundA
+    %         chosen = 'B (shifted center)';
+    %         x_t = xB;
+    %     else
+    %         % ambiguous: pick the larger magnitude
+    %         if magFundA >= magFundB
+    %             chosen = 'A (fallback)';
+    %             x_t = xA;
+    %         else
+    %             chosen = 'B (fallback)';
+    %             x_t = xB;
+    %         end
+    %     end
+    %     fprintf('inverseEHD_autodetect selected mapping: %s\n', chosen);
+    % end
+    
+    % function mag = dominantFundamentalMag(x_segment, f0, t_segment)
+    %     % return magnitude of fundamental component using FFT peak around f0
+    %     N = length(x_segment);
+    %     Xfft = fft(x_segment);
+    %     f = (0:N-1)/ (t_segment(end)-t_segment(1) + (t_segment(2)-t_segment(1))) ; % simple freq vector
+    %     % find index nearest to f0
+    %     [~, idx] = min(abs(f - f0));
+    %     mag = abs(Xfft(idx));
+    % end
+
 
 end
