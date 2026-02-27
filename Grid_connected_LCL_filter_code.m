@@ -1,4 +1,4 @@
-function [] = LCL_filter_code()
+function [] = Grid_connected_LCL_filter_code()
 
     h = 50;         % no of harmonics used
     f0 = 60;        % grid frequency
