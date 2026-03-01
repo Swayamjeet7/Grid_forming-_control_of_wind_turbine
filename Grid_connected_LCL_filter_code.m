@@ -122,7 +122,7 @@ function [] = Grid_connected_LCL_filter_code()
 
     [Iga, Ica, Vfa, Vdc] = LCL_filter_equation(x_opt);
     
-%% ------------------ Robust two-period reconstruction & plots ------------------
+%% Robust two-period reconstruction & plots
 % Assumes X_h vectors are ordered from -h .. 0 .. +h (length 2*h+1; center index h+1).
 % Replace prior reconstruction calls with this block.
 

@@ -16,7 +16,6 @@ t = (0:N-1)/Fs;
 w = 2*pi*f0;
 % va = 120*sin(w*t); % phase voltage given for L_filter
 va = Vac_peak*sin(w*t); % phase voltage given for LCL_filter
-% il = P_ref ./ Vdc_ref;
 
 m_a = M * sin(w*t + theta);
 m_b = M * sin(w*t - (2*pi/3) + theta);
@@ -29,7 +28,6 @@ carrier = 2*abs(2*mod(f_sw*t,1)-1)-1;  % triangle in range [-1,1]
 s_a = double(m_a > carrier);
 s_b = double(m_b > carrier);
 s_c = double(m_c > carrier);
-% s = [s_a; s_b; s_c];
 
 % FFT 
 Sfull_a = fftshift(fft(s_a)/N);
@@ -55,31 +53,28 @@ Va = transpose(Vfull_a(idx));
 Idc = complex(zeros(2*h+1,1));
 Idc(h+1) = complex(Idc_f,0);
 
-% S_h = [Sfull_a(idx); Sfull_b(idx); Sfull_c(idx)];
-% Sa = S_h(1,:);
-% Sb = S_h(2,:);
-% Sc = S_h(3,:);
-
 % generate toeplitz matrices
 Sa = buildToeplitz(Sa_h,h);
 Sb = buildToeplitz(Sb_h,h);
 Sc = buildToeplitz(Sc_h,h);
 
-Ga = Sa - (Sa + Sb + Sc)/3;
+% For 3 phase analysis
+% Ga = Sa - (Sa + Sb + Sc)/3;
 % Gb = Sb - (Sa + Sb + Sc)/3;
 % Gc = Sc - (Sa + Sb + Sc)/3;
 
-% identity matrix
-% I = eye(2*h+1);
+% For 1 phase analysis
+Ga = Sa - Sb ;
 
 % operational matrix of differentiation
 diagElements = 1j*(-h:h)*w;
 D = diag(diagElements);
 
 
-Za = buildSimplificationMatrix(Sa,h);
+% Za = buildSimplificationMatrix(Sa,h);
 % Zb = buildSimplificationMatrix(Sb,h);
 % Zc = buildSimplificationMatrix(Sc,h);
+Za = 0;
 
 end
   
@@ -103,13 +98,14 @@ end
 
 
 function Sx = buildToeplitz(Sx_h,h)
-H = -h:h;
+
 % build Toeplitz 
 % c = Sx_h(h+1:end);
 % r = Sx_h(h+1:-1:1);
 % Sx = toeplitz(c, r);
 
 % full (2h+1)x(2h+1) by convolution rule
+H = -h:h;
 Nh = 2*h+1;
 Sx = zeros(Nh,Nh);
 for r = (1:Nh)
@@ -122,4 +118,3 @@ for r = (1:Nh)
     end
 end
 end
-
