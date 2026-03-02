@@ -18,7 +18,8 @@ w = 2*pi*f0;
 va = Vac_peak*sin(w*t); % phase voltage given for LCL_filter
 
 m_a = M * sin(w*t + theta);
-m_b = M * sin(w*t - (2*pi/3) + theta);
+m_b = M * sin(w*t - pi + theta);
+% m_b = M * sin(w*t - (2*pi/3) + theta);
 m_c = M * sin(w*t + (2*pi/3) + theta);
 
 % sawtooth carrier 
